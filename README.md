@@ -5,7 +5,7 @@ Individual Coursework for COMP0012 (Compilers). About Lexing and Parsing
 2. Go to project directory
 3. Type "make" to build
 4. Create tests by:
-  a. Typing "make test" => Tests all cases and show failed ones.
+  a. \nTyping "make test" => Tests all cases and show failed ones.
   b. Typing "./bin/sc tests/open/<testname>" => Test the selected test.
   c. Typing "./tim-test.sh all" => Tests all the tests and shows the results.
 

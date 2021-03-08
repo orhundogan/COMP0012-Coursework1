@@ -5,9 +5,9 @@ Individual Coursework for COMP0012 (Compilers). About Lexing and Parsing
 2. Go to project directory
 3. Type "make" to build
 4. Create tests by:
-  Typing "make test" => Tests all cases and show failed ones.
-  Typing "./bin/sc tests/open/<testname>" => Test the selected test.
-  Typing "./tim-test.sh all" => Tests all the tests and shows the results.
+Typing "make test" => Tests all cases and show failed ones.
+Typing "./bin/sc tests/open/<testname>" => Test the selected test.
+Typing "./tim-test.sh all" => Tests all the tests and shows the results.
 
 PS: To see detailed information about failed tests, add "%debug" under %column in Lexer.lex file. The user can type "make" and then "make test". Detailed information will be saved into result.csv. 
 

@@ -1,0 +1,223 @@
+import java_cup.runtime.*;
+
+scan with {: return lexer.next_token(); :};
+
+parser code {:
+
+  static class ErrorInfo {
+    public int line;
+    public int column;
+
+    public ErrorInfo(int line, int column) {
+      this.line = line;
+      this.column = column;
+    }
+  }
+
+  Lexer lexer;
+
+  // used by SC.java to decide whether parsing is successful
+  public boolean syntaxErrors;
+
+  public Parser(Lexer lex) {
+      super(lex);
+      lexer = lex;
+  }
+
+  public void syntax_error(Symbol cur_token) {
+    this.syntaxErrors = true;
+  }
+
+  public void unrecovered_syntax_error(Symbol cur_token) throws java.lang.Exception {
+    this.syntaxErrors = true;
+    report_fatal_error(
+      "Syntax error at line " + (cur_token.left+1) + ", column "
+      + cur_token.right + ".\n", null
+    );
+  }
+
+  public void custom_err_report(String message, int line, int column)
+    throws java.lang.Exception
+  {
+    this.syntaxErrors = true;
+    report_fatal_error( message + "\n", new ErrorInfo(line, column) );
+  }
+
+:};
+
+/* Your code goes here */
+/* Your code goes here */
+/* Your code goes here */
+
+terminal SEMICOLON;
+terminal ASSIGN, CONCAT, COLON, EQUAL, NOTEQUAL, AND, OR, NOT, PLUS, MINUS, TIMES, DIVIDE, IMPLY, LESSEQUAL, LESS, GREATER, COMMA, QUESTION, CARET, DOT;
+terminal LPAREN, RPAREN, LBRACE, RBRACE, LBRACK, RBRACK;
+// terminal L, H;
+terminal INTEGER, CHARACTER, RATIONAL, FLOAT, BOOLEAN, DICT, SEQ, THREAD;
+terminal MAIN, TDEF, FDEF, TOP, IN, ALIAS, IF, FI, THEN, ELSE, READ, PRINT, RETURN, BREAK, LOOP, POOL, UPTO, FOR, OFRANGE;
+terminal IDENTIFIER, NUMBER, STRING, ILLEGAL_CHARACTER;
+
+
+non terminal program, main, codeBlock, identifier, fieldRef;
+non terminal type, subType, dictType, seqType;
+non terminal expList, dictVal, seqVal, dictItems, seqRef;
+non terminal expression, operator, comparator, expOrNull;
+non terminal decBlock, declaration, typeDec, assignment, tdef, alias;
+non terminal stBlock, statement, print, read, loop, break, if, return;
+non terminal function, funcCall, returnType, args, _args, parameters, _params;
+non terminal statementBreak, statementsBreak, ifBreak, codeBlockBreak;
+
+precedence left OR, PLUS, MINUS;
+precedence left AND, TIMES, DIVIDE;
+precedence left CONCAT;
+precedence right IN, CARET;
+precedence nonassoc NOT, LESS, LESSEQUAL, GREATER, EQUAL, NOTEQUAL;
+precedence nonassoc IMPLY, QUESTION;
+precedence left LPAREN, RPAREN;
+precedence left LBRACK, RBRACK;
+
+start with program;
+
+program ::= decBlock main decBlock |;
+
+//main ::= MAIN LBRACE codeBlock RBRACE SEMICOLON;
+main ::= FDEF MAIN LPAREN RPAREN LBRACE codeBlock RBRACE SEMICOLON;
+
+codeBlock ::= decBlock stBlock ;
+
+// Identifier
+identifier ::= fieldRef DOT identifier |fieldRef ;
+fieldRef ::= IDENTIFIER
+             | IDENTIFIER LBRACK expression RBRACK
+             | IDENTIFIER LBRACK expOrNull COLON expOrNull RBRACK
+             | funcCall
+             | funcCall LBRACK expression RBRACK
+             | funcCall LBRACK expOrNull COLON expOrNull RBRACK
+             ;
+
+// Types
+
+type ::= dictType | seqType | CHARACTER | INTEGER |RATIONAL |FLOAT |IDENTIFIER|THREAD ;
+subType ::= type |TOP;
+dictType ::= DICT LESS subType COMMA subType GREATER;
+seqType ::= SEQ LESS subType GREATER;
+
+// Values
+
+expList ::= expression | expression COMMA expList;
+
+dictVal ::= LPAREN dictItems RPAREN | LPAREN RPAREN;
+dictItems ::= expression COLON expression
+            | expression COLON expression dictItems
+            | expression COLON expression COMMA dictItems
+            | LPAREN expression COLON expression COMMA dictItems RPAREN ;
+
+seqVal ::= LBRACK seqRef RBRACK
+         | LBRACK RBRACK
+         | STRING;
+
+seqRef ::= expression | expression seqRef | expression COMMA seqRef;
+
+// Expressions
+
+operator ::= PLUS | MINUS |TIMES | DIVIDE | CARET | CONCAT | IN;
+comparator ::= AND | OR|EQUAL |IMPLY |LESS |GREATER | LESSEQUAL| NOTEQUAL;
+
+expression ::= expression operator expression
+             | expression comparator expression
+             | expression CONCAT expression
+             | expression IN expression
+             | NOT expression
+             | LPAREN expression RPAREN
+             | dictVal
+             | seqVal 
+             | BOOLEAN
+             | MINUS expression
+             | NUMBER
+             | CHARACTER
+             | identifier
+             | identifier LPAREN identifier RPAREN
+             | expression QUESTION identifier
+             | UPTO LPAREN expression RPAREN
+             ;
+
+expOrNull ::= expression |;
+
+// Declarations
+
+decBlock ::= decBlock declaration|;
+declaration ::= typeDec SEMICOLON
+              | typeDec ASSIGN expList SEMICOLON
+              | typeDec ASSIGN LBRACE stBlock RBRACE SEMICOLON
+              | tdef
+              | alias 
+              | function
+              ;
+
+//typeDec ::= IDENTIFIER COLON type;
+typeDec ::= type IDENTIFIER;
+
+tdef ::= TDEF IDENTIFIER LBRACE parameters RBRACE SEMICOLON;    // 
+alias ::= ALIAS type type SEMICOLON;
+
+// Statements 
+
+stBlock ::= statement stBlock |;
+statement ::= loop 
+            | if 
+            | read 
+            | print 
+            | assignment 
+            | return 
+            | funcCall SEMICOLON
+            ;
+
+assignment ::= identifier ASSIGN expList SEMICOLON;
+print ::= PRINT expression SEMICOLON;
+read ::= READ identifier SEMICOLON;
+loop ::= LOOP codeBlockBreak POOL
+        | LOOP LBRACE codeBlockBreak RBRACE;
+break ::= BREAK SEMICOLON | BREAK NUMBER SEMICOLON;
+return ::= RETURN SEMICOLON | RETURN expression SEMICOLON | RETURN LPAREN expression RPAREN SEMICOLON
+                    | RETURN LBRACK IDENTIFIER FOR IDENTIFIER OFRANGE LPAREN args RPAREN RBRACK SEMICOLON;
+/* if ::= IF LPAREN expression RPAREN THEN codeBlock FI
+     | IF LPAREN expression RPAREN THEN codeBlock ELSE codeBlock FI
+     ; */
+if ::= IF LPAREN expression RPAREN LBRACE stBlock RBRACE
+      | IF LPAREN expression RPAREN LBRACE stBlock RBRACE ELSE LBRACE codeBlock RBRACE;   // 
+
+codeBlockBreak ::= decBlock statementsBreak;
+statementsBreak ::= statementBreak statementsBreak | statementBreak;
+
+statementBreak ::= loop
+                 | break
+                 | ifBreak
+                 | read
+                 | print
+                 | assignment
+                 | return
+                 | funcCall SEMICOLON
+                 ;
+
+/* ifBreak ::= IF LPAREN expression RPAREN THEN codeBlockBreak FI
+          | IF LPAREN expression RPAREN THEN codeBlockBreak ELSE codeBlockBreak FI
+          ; */
+ifBreak ::= IF LPAREN expression RPAREN LBRACE codeBlockBreak RBRACE
+          | IF LPAREN expression RPAREN LBRACE codeBlockBreak RBRACE ELSE LBRACE codeBlockBreak RBRACE;   //  
+
+// Functions
+
+_params ::= typeDec | typeDec COMMA _params;
+parameters ::= _params |;
+
+_args ::= expression | expression COMMA _args | expression _args;
+args ::= _args |;
+
+//funcCall ::= QUESTION expression QUESTION IDENTIFIER LPAREN args RPAREN;
+funcCall ::= IDENTIFIER LPAREN args RPAREN
+          | IDENTIFIER LPAREN args RPAREN SEMICOLON;      //  func 
+function ::= FDEF IDENTIFIER LPAREN parameters RPAREN LBRACE codeBlock RBRACE RETURN returnType SEMICOLON
+              | FDEF seqType UPTO LPAREN parameters RPAREN LBRACE codeBlock RBRACE SEMICOLON
+              | FDEF typeDec LPAREN parameters RPAREN LBRACE codeBlock RBRACE SEMICOLON
+              | FDEF IDENTIFIER LPAREN parameters RPAREN LBRACE codeBlock RBRACE SEMICOLON;
+returnType ::= COLON type |; 
